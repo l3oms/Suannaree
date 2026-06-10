@@ -108,7 +108,7 @@
         </div>
 
         <div class="flex justify-between items-center mb-3">
-            <h3 class="font-bold text-slate-300 text-xs tracking-wider uppercase">สมุดรายวันประจำบ้านและประวัติรายการ</h3>
+            <h3 class="font-bold text-slate-300 text-xs tracking-wider uppercase">สมุดรายวันประจำร้านและประวัติรายการ</h3>
             <span id="transaction-count" class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-md font-mono">0 รายการ</span>
         </div>
 
@@ -118,13 +118,13 @@
     </div>
 
     <script>
-        // ใส่ API URL ยิงตรงไปที่ระบบคลาวด์ชีตของร้านสรวลนารีเพื่อความเสถียร
+        // ลิงก์ Web App API ตรงไปที่ระบบคลาวด์ชีตของร้านสรวลนารีเรียบร้อยแล้ว
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIUcTyIsVsAAIK4B2cvlcCTtORhE21mdI0cxX-LwMBFoD6S67SA2-dcYWEXSvRLSOt/exec";
         
         let allTransactions = [];
         let currentFilter = 'day';
 
-        // โครงสร้างหมวดหมู่ระดับองค์กร แยกประเภทตามหลักบัญชีร้านอาหาร
+        // โครงสร้างหมวดหมู่ระดับองค์กร แยกประเภทตามหลักบัญชีร้านอาหารของคุณ
         const categoriesData = {
             'รายรับ': ['ยอดขายหน้าร้าน (เงินสด)', 'ยอดขายหน้าร้าน (เงินโอน)', 'ยอดขายเดลิเวอรี่', 'รายรับอื่นๆ'],
             'รายจ่าย': ['ค่าแรง/พนักงาน', 'วัตถุดิบ/ตลาด', 'ค่าน้ำไฟ/สาธารณูปโภค', 'ค่าเช่าสถานที่', 'ค่าการตลาด/โฆษณา', 'ค่าซ่อมบำรุง', 'รายจ่ายอื่นๆ']
