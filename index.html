@@ -151,6 +151,44 @@
                 </div>
             </div>
 
+            <div class="bg-white p-4 bank-card shadow-md border border-slate-100">
+                <h2 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-1.5">
+                    <span>📊</span> ยอดแยกตามหมวดหมู่ช่วงที่เลือก
+                </h2>
+                <div class="grid grid-cols-2 gap-4 text-xs">
+                    <div class="space-y-2 border-r border-slate-100 pr-2">
+                        <p class="font-bold text-emerald-600 border-b border-emerald-50 pb-1">📥 รายรับย่อย</p>
+                        <div class="flex justify-between text-slate-600">
+                            <span>เงินสด:</span>
+                            <span id="cat-sum-cash" class="bank-amount font-bold text-slate-800">฿0.00</span>
+                        </div>
+                        <div class="flex justify-between text-slate-600">
+                            <span>เงินโอน:</span>
+                            <span id="cat-sum-transfer" class="bank-amount font-bold text-slate-800">฿0.00</span>
+                        </div>
+                    </div>
+                    <div class="space-y-2 pl-1">
+                        <p class="font-bold text-rose-600 border-b border-rose-50 pb-1">📤 รายจ่ายย่อย</p>
+                        <div class="flex justify-between text-slate-600">
+                            <span>พนักงาน:</span>
+                            <span id="cat-sum-staff" class="bank-amount font-bold text-slate-800">฿0.00</span>
+                        </div>
+                        <div class="flex justify-between text-slate-600">
+                            <span>ตลาด:</span>
+                            <span id="cat-sum-market" class="bank-amount font-bold text-slate-800">฿0.00</span>
+                        </div>
+                        <div class="flex justify-between text-slate-600">
+                            <span>ค่าเครื่องดื่ม:</span>
+                            <span id="cat-sum-drink" class="bank-amount font-bold text-slate-800">฿0.00</span>
+                        </div>
+                        <div class="flex justify-between text-slate-600">
+                            <span>อื่นๆ:</span>
+                            <span id="cat-sum-other" class="bank-amount font-bold text-slate-800">฿0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="bg-white p-4 bank-card shadow-md border border-slate-100 min-h-[300px]">
                 <h2 class="text-sm font-bold text-slate-600 mb-3">รายการเดินบัญชี (Statement)</h2>
                 <div id="history-tx-list" class="divide-y divide-slate-100"></div>
@@ -175,7 +213,7 @@
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbz7UnklOx7vP_P4PgV1Rmw0rWe8L3SfcY0ub82C4bLVNAfQSnbfJ6IPbocDMDtvGHvS/exec";
         
-        const PASSWORD = "1234"; // รหัสผ่านเข้าใช้งานเว็บแอป
+        const PASSWORD = "1234"; 
 
         let currentType = 'income';
         let selectedCategory = '';
@@ -190,16 +228,14 @@
         document.getElementById('date').value = todayStr;
         document.getElementById('display-date').innerText = new Date().toLocaleDateString('th-TH', { dateStyle: 'medium' });
 
-        // --- ลอจิกฟังก์ชันนาฬิกา Real-time ---
         function updateClock() {
             const now = new Date();
             const timeString = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
             const clockEl = document.getElementById('display-time');
             if(clockEl) clockEl.innerText = timeString;
         }
-        // สั่งให้นาฬิกาอัปเดตทุกๆ 1 วินาที (1000 มิลลิวินาที)
         setInterval(updateClock, 1000);
-        updateClock(); // รันทันทีครั้งแรกตอนโหลดหน้าเว็บ
+        updateClock(); 
 
         const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
         document.getElementById('history-start-date').value = firstDayOfMonth;
@@ -347,15 +383,24 @@
             document.getElementById('total-balance').innerText = `฿${(incSum - expSum).toLocaleString(undefined, {minimumFractionDigits: 2})}`;
         }
 
+        // หน้ารายงานย้อนหลัง (เวอร์ชันเพิ่มระบบแยกยอดตามหมวดหมู่ย่อย)
         function updateHistoryUI() {
             const histList = document.getElementById('history-tx-list');
             const emptyMsg = document.getElementById('history-empty-msg');
             if(!histList) return;
+            
             const start = document.getElementById('history-start-date').value;
             const end = document.getElementById('history-end-date').value;
 
             const filtered = txs.filter(t => t.date >= start && t.date <= end);
             let incSum = 0, expSum = 0;
+            
+            // ตัวแปรสำหรับเก็บยอดแยกตามหัวข้อย่อย
+            let catSums = {
+                'เงินสด': 0, 'เงินโอน': 0,
+                'พนักงาน': 0, 'ตลาด': 0, 'ค่าเครื่องดื่ม': 0, 'อื่นๆ': 0
+            };
+
             histList.innerHTML = '';
 
             if (filtered.length === 0) {
@@ -365,13 +410,28 @@
                 filtered.sort((a, b) => b.date.localeCompare(a.date) || b.ts - a.ts).forEach(t => {
                     const isInc = t.type === 'income';
                     if(isInc) incSum += t.amt; else expSum += t.amt;
+                    
+                    // บวกยอดสะสมเข้าหมวดหมู่ย่อยที่ตรงกัน
+                    if (catSums[t.cat] !== undefined) {
+                        catSums[t.cat] += t.amt;
+                    }
+
                     histList.appendChild(createRowItem(t, true));
                 });
             }
 
+            // แสดงผลยอดรวม 3 กล่องหลัก
             document.getElementById('hist-total-income').innerText = `฿${incSum.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
             document.getElementById('hist-total-expense').innerText = `฿${expSum.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
             document.getElementById('hist-total-balance').innerText = `฿${(incSum - expSum).toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+
+            // ผูกค่าตัวเลขไปแสดงผลในตารางแยกหมวดหมู่ย่อยอวบอิ่มมนๆ
+            document.getElementById('cat-sum-cash').innerText = `฿${catSums['เงินสด'].toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('cat-sum-transfer').innerText = `฿${catSums['เงินโอน'].toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('cat-sum-staff').innerText = `฿${catSums['พนักงาน'].toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('cat-sum-market').innerText = `฿${catSums['ตลาด'].toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('cat-sum-drink').innerText = `฿${catSums['ค่าเครื่องดื่ม'].toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('cat-sum-other').innerText = `฿${catSums['อื่นๆ'].toLocaleString(undefined, {minimumFractionDigits: 2})}`;
         }
 
         function createRowItem(t, showDate = false) {
