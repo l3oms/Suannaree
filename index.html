@@ -13,6 +13,8 @@
             .print-padding { padding: 0 !important; }
             body { background: white; color: black; }
         }
+        .scrollbar-none::-webkit-scrollbar { display: none; }
+        .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen antialiased">
@@ -118,13 +120,14 @@
     </div>
 
     <script>
-        // ลิงก์ Web App API ตรงไปที่ระบบคลาวด์ชีตของร้านสรวลนารีเรียบร้อยแล้ว
-        const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIUcTyIsVsAAIK4B2cvlcCTtORhE21mdI0cxX-LwMBFoD6S67SA2-dcYWEXSvRLSOt/exec";
+        // ==========================================
+        // https://script.google.com/macros/s/AKfycbxz0AxBfFLpim7nh8mgM5bEuH7dmdVG1G7-ts-UBWvY6a-t16kBp0ui0OZdIKYo7wXLDg/exec
+        // ==========================================
+        const GOOGLE_API_URL = "วาง_URL_เว็บแอปของคุณตรงนี้";
         
         let allTransactions = [];
         let currentFilter = 'day';
 
-        // โครงสร้างหมวดหมู่ระดับองค์กร แยกประเภทตามหลักบัญชีร้านอาหารของคุณ
         const categoriesData = {
             'รายรับ': ['ยอดขายหน้าร้าน (เงินสด)', 'ยอดขายหน้าร้าน (เงินโอน)', 'ยอดขายเดลิเวอรี่', 'รายรับอื่นๆ'],
             'รายจ่าย': ['ค่าแรง/พนักงาน', 'วัตถุดิบ/ตลาด', 'ค่าน้ำไฟ/สาธารณูปโภค', 'ค่าเช่าสถานที่', 'ค่าการตลาด/โฆษณา', 'ค่าซ่อมบำรุง', 'รายจ่ายอื่นๆ']
@@ -134,7 +137,6 @@
             const type = document.getElementById('form-type').value;
             const catSelect = document.getElementById('form-category');
             catSelect.innerHTML = '';
-            
             categoriesData[type].forEach(c => {
                 const opt = document.createElement('option');
                 opt.value = c;
@@ -146,7 +148,11 @@
         window.addEventListener('DOMContentLoaded', () => {
             document.getElementById('form-date').value = new Date().toISOString().split('T')[0];
             updateCategories();
-            fetchData();
+            if(GOOGLE_API_URL !== "วาง_URL_เว็บแอปของคุณตรงนี้") {
+                fetchData();
+            } else {
+                document.getElementById('loading-status').innerHTML = `<span class="text-amber-400">⚠️ กรุณาใส่ URL เว็บแอปในโค้ดก่อนใช้งาน</span>`;
+            }
         });
 
         async function fetchData() {
@@ -187,16 +193,13 @@
             });
 
             document.getElementById('transaction-count').innerText = `${filtered.length} รายการ`;
-
-            let income = 0;
-            let expense = 0;
+            let income = 0; let expense = 0;
             const listContainer = document.getElementById('transaction-list');
             listContainer.innerHTML = '';
 
             filtered.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(txn => {
                 const isIncome = txn.type === 'รายรับ';
-                if (isIncome) income += txn.amount;
-                else expense += txn.amount;
+                if (isIncome) income += txn.amount; else expense += txn.amount;
 
                 const item = document.createElement('div');
                 item.className = "bg-slate-950 p-4 rounded-xl border border-slate-800/80 shadow-sm flex justify-between items-center hover:border-slate-700 transition";
@@ -231,7 +234,6 @@
             
             const netProfitEl = document.getElementById('net-profit');
             const profitBadge = document.getElementById('profit-badge');
-            
             netProfitEl.innerText = `${net >= 0 ? '+' : ''}฿${net.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
             
             if (net >= 0) {
@@ -264,20 +266,10 @@
             btn.innerText = "กำลังตรวจสอบความถูกต้องระบบ...";
             document.getElementById('loading-status').innerHTML = `<span class="text-amber-400 animate-pulse">💾 กำลังบันทึกธุรกรรมลงกูเกิลชีต...</span>`;
 
-            const payload = {
-                action: id ? 'edit' : 'add',
-                id: id,
-                type: type,
-                category: category,
-                amount: amount,
-                date: date,
-                note: note
-            };
-
             try {
                 await fetch(GOOGLE_API_URL, {
                     method: 'POST',
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({ action: id ? 'edit' : 'add', id, type, category, amount, date, note })
                 });
                 resetForm();
                 await fetchData();
@@ -303,7 +295,6 @@
                 document.getElementById('submit-btn').innerText = "ยืนยันการแก้ไขตัวเลข";
                 document.getElementById('submit-btn').className = "w-full bg-amber-600 text-white p-3 rounded-xl font-bold hover:bg-amber-500 transition text-sm shadow-md tracking-wider";
                 document.getElementById('cancel-edit-btn').classList.remove('hidden');
-
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         }
@@ -314,7 +305,6 @@
             document.getElementById('form-amount').value = '';
             document.getElementById('form-note').value = '';
             document.getElementById('form-date').value = new Date().toISOString().split('T')[0];
-            
             document.getElementById('submit-btn').innerText = "ตรวจสอบและบันทึกข้อมูล";
             document.getElementById('submit-btn').className = "w-full bg-emerald-600 text-white p-3 rounded-xl font-bold hover:bg-emerald-500 transition text-sm shadow-md tracking-wider";
             document.getElementById('cancel-edit-btn').classList.add('hidden');
@@ -323,11 +313,10 @@
         async function deleteTransaction(id) {
             if(!confirm('🚨 คำเตือนความปลอดภัย: คุณแน่ใจว่าต้องการลบรายการนี้ออกจากระบบบัญชีถาวรใช่หรือไม่?')) return;
             document.getElementById('loading-status').innerHTML = `<span class="text-rose-400 animate-pulse">🗑️ กำลังลบข้อมูลบนระบบคลาวด์...</span>`;
-            
             try {
                 await fetch(GOOGLE_API_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ action: 'delete', id: id })
+                    body: JSON.stringify({ action: 'delete', id })
                 });
                 fetchData();
             } catch (err) {
