@@ -7,10 +7,11 @@
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2=family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'IBM Plex Sans Thai', sans-serif; background-color: #f8fafc; }
-        .bank-card { border-radius: 1rem; }
+        .bank-amount { font-family: 'Inter', 'IBM Plex Sans Thai', sans-serif; letter-spacing: -0.02em; }
+        .bank-card { border-radius: 1.25rem; }
         .active-tab { color: #4338ca; border-top: 2px solid #4338ca; }
     </style>
 </head>
@@ -19,11 +20,12 @@
     <nav class="bg-indigo-900 text-white pt-6 pb-10 px-4 rounded-b-[2rem] shadow-lg">
         <div class="w-full flex justify-between items-center">
             <div>
-                <p class="text-indigo-200 text-xs">ระบบบัญชี</p>
+                <p class="text-indigo-200 text-xs">ระบบบัญชีออนไลน์</p>
                 <h1 class="text-xl font-bold text-white">ร้านสรวลนารี</h1>
             </div>
             <div class="text-right">
-                <p id="display-date" class="text-xs text-indigo-200"></p>
+                <p id="display-date" class="text-xs text-indigo-200 font-medium"></p>
+                <span id="sync-status" class="inline-block text-[9px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full mt-1">● Online</span>
             </div>
         </div>
     </nav>
@@ -33,15 +35,15 @@
             <div class="grid grid-cols-3 divide-x divide-slate-100 text-center">
                 <div>
                     <p class="text-slate-400 text-[10px] font-semibold mb-1">รายรับวันนี้</p>
-                    <p id="total-income" class="text-sm font-bold text-emerald-600">฿0</p>
+                    <p id="total-income" class="bank-amount text-md font-extrabold text-emerald-600">฿0.00</p>
                 </div>
                 <div>
                     <p class="text-slate-400 text-[10px] font-semibold mb-1">รายจ่ายวันนี้</p>
-                    <p id="total-expense" class="text-sm font-bold text-rose-600">฿0</p>
+                    <p id="total-expense" class="bank-amount text-md font-extrabold text-rose-600">฿0.00</p>
                 </div>
-                <div class="bg-indigo-50/50 rounded-r-lg">
+                <div class="bg-indigo-50/50 rounded-r-xl">
                     <p class="text-indigo-600 text-[10px] font-semibold mb-1">คงเหลือ</p>
-                    <p id="total-balance" class="text-sm font-bold text-indigo-950">฿0</p>
+                    <p id="total-balance" class="bank-amount text-md font-extrabold text-indigo-950">฿0.00</p>
                 </div>
             </div>
         </div>
@@ -54,7 +56,7 @@
             <form id="tx-form" class="space-y-4">
                 <div>
                     <label class="text-[11px] font-semibold text-slate-500 block mb-1">เลือกวันที่</label>
-                    <input type="date" id="date" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <input type="date" id="date" required class="bank-amount w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none font-medium">
                 </div>
                 <div>
                     <label class="text-[11px] font-semibold text-slate-500 block mb-1">ประเภทรายการ</label>
@@ -73,9 +75,9 @@
                 </div>
                 <div>
                     <label class="text-[11px] font-semibold text-slate-500 block mb-1">จำนวนเงิน (บาท)</label>
-                    <input type="number" id="amt" step="0.01" placeholder="0.00" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-lg font-bold text-indigo-900 outline-none">
+                    <input type="number" id="amt" step="0.01" placeholder="0.00" required class="bank-amount w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xl font-extrabold text-indigo-900 outline-none">
                 </div>
-                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-md text-sm">
+                <button type="submit" id="btn-submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-md text-sm transition-all flex justify-center items-center gap-2">
                     บันทึกรายการ
                 </button>
             </form>
@@ -83,10 +85,11 @@
 
         <div class="bg-white p-4 bank-card shadow-md border border-slate-100">
             <h2 class="text-sm font-bold text-slate-500 mb-3">รายการของวันนี้</h2>
-            <div id="tx-list-today" class="divide-y divide-slate-100"></div>
+            <div id="tx-list-today" class="divide-y divide-slate-100">
+                <div class="py-6 text-center text-xs text-slate-400">กำลังโหลดข้อมูลจาก Google Sheet...</div>
+            </div>
         </div>
     </div>
-
 
     <div id="page-history" class="w-full px-3 -mt-6 space-y-4 hidden">
         <div class="bg-white p-4 bank-card shadow-md border border-slate-100">
@@ -97,11 +100,11 @@
             <div class="grid grid-cols-2 gap-2 mb-3">
                 <div>
                     <label class="text-[10px] font-semibold text-slate-400 block mb-1">จากวันที่</label>
-                    <input type="date" id="history-start-date" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs outline-none">
+                    <input type="date" id="history-start-date" class="bank-amount w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs outline-none font-medium">
                 </div>
                 <div>
                     <label class="text-[10px] font-semibold text-slate-400 block mb-1">ถึงวันที่</label>
-                    <input type="date" id="history-end-date" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs outline-none">
+                    <input type="date" id="history-end-date" class="bank-amount w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs outline-none font-medium">
                 </div>
             </div>
             <button onclick="updateHistoryUI()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2 rounded-xl text-xs">
@@ -114,15 +117,15 @@
             <div class="grid grid-cols-3 text-center divide-x divide-slate-800">
                 <div>
                     <p class="text-[10px] text-emerald-400">รายรับรวม</p>
-                    <p id="hist-total-income" class="text-sm font-bold text-emerald-400">฿0</p>
+                    <p id="hist-total-income" class="bank-amount text-sm font-extrabold text-emerald-400">฿0.00</p>
                 </div>
                 <div>
                     <p class="text-[10px] text-rose-400">รายจ่ายรวม</p>
-                    <p id="hist-total-expense" class="text-sm font-bold text-rose-400">฿0</p>
+                    <p id="hist-total-expense" class="bank-amount text-sm font-extrabold text-rose-400">฿0.00</p>
                 </div>
                 <div>
                     <p class="text-[10px] text-amber-400">กำไรสุทธิ</p>
-                    <p id="hist-total-balance" class="text-sm font-bold text-amber-400">฿0</p>
+                    <p id="hist-total-balance" class="bank-amount text-sm font-extrabold text-amber-400">฿0.00</p>
                 </div>
             </div>
         </div>
@@ -136,7 +139,6 @@
         </div>
     </div>
 
-
     <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-xl h-16 flex items-center justify-around z-50">
         <button onclick="switchTab('input')" id="nav-input" class="flex flex-col items-center justify-center w-1/2 h-full active-tab text-slate-600 transition-all">
             <span class="text-lg font-bold">📝</span>
@@ -149,24 +151,55 @@
     </div>
 
     <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbz7UnklOx7vP_P4PgV1Rmw0rWe8L3SfcY0ub82C4bLVNAfQSnbfJ6IPbocDMDtvGHvS/exec";
+        
         let currentType = 'income';
         let selectedCategory = '';
-        let txs = JSON.parse(localStorage.getItem('sn_accounts')) || [];
+        let txs = [];
         
         const categories = {
             income: ['เงินสด', 'เงินโอน'],
             expense: ['พนักงาน', 'ตลาด', 'ค่าเครื่องดื่ม', 'อื่นๆ']
         };
 
-        // ตั้งเวลาเริ่มต้น
         const todayStr = new Date().toISOString().split('T')[0];
         document.getElementById('date').value = todayStr;
         document.getElementById('display-date').innerText = new Date().toLocaleDateString('th-TH', { dateStyle: 'medium' });
 
-        // ตั้งวันที่ย้อนหลังให้เริ่มต้นเป็น วันแรกของเดือน จนถึง วันปัจจุบัน
         const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
         document.getElementById('history-start-date').value = firstDayOfMonth;
         document.getElementById('history-end-date').value = todayStr;
+
+        async function fetchAllData() {
+            setSyncStatus('กำลังโหลด...', 'bg-amber-500 text-white animate-pulse');
+            try {
+                const res = await fetch(API_URL);
+                const rawData = await res.json();
+                
+                txs = rawData.map(t => {
+                    let d = new Date(t.date);
+                    let yyyy = d.getFullYear();
+                    let mm = String(d.getMonth() + 1).padStart(2, '0');
+                    let dd = String(d.getDate()).padStart(2, '0');
+                    return { ...t, date: `${yyyy}-${mm}-${dd}` };
+                });
+
+                setSyncStatus('● ซิงค์สำเร็จ', 'bg-emerald-500/20 text-emerald-600');
+                updateUI();
+                if(!document.getElementById('page-history').classList.contains('hidden')) {
+                    updateHistoryUI();
+                }
+            } catch (err) {
+                console.error(err);
+                setSyncStatus('⚠️ เชื่อมต่อล้มเหลว', 'bg-rose-500 text-white');
+            }
+        }
+
+        function setSyncStatus(text, className) {
+            const status = document.getElementById('sync-status');
+            status.innerText = text;
+            status.className = `inline-block text-[9px] px-2 py-0.5 rounded-full mt-1 ${className}`;
+        }
 
         function switchTab(tab) {
             const pageInput = document.getElementById('page-input');
@@ -220,7 +253,6 @@
             }).join('');
         }
 
-        // หน้าบอร์ดหลักประจำวัน
         function updateUI() {
             const listToday = document.getElementById('tx-list-today');
             const filteredToday = txs.filter(t => t.date === todayStr);
@@ -234,20 +266,17 @@
                 listToday.appendChild(createRowItem(t));
             });
 
-            document.getElementById('total-income').innerText = `฿${incSum.toLocaleString()}`;
-            document.getElementById('total-expense').innerText = `฿${expSum.toLocaleString()}`;
-            document.getElementById('total-balance').innerText = `฿${(incSum - expSum).toLocaleString()}`;
-            localStorage.setItem('sn_accounts', JSON.stringify(txs));
+            document.getElementById('total-income').innerText = `฿${incSum.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('total-expense').innerText = `฿${expSum.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('total-balance').innerText = `฿${(incSum - expSum).toLocaleString(undefined, {minimumFractionDigits: 2})}`;
         }
 
-        // หน้ารายงานย้อนหลังตามช่วงเวลา
         function updateHistoryUI() {
             const histList = document.getElementById('history-tx-list');
             const emptyMsg = document.getElementById('history-empty-msg');
             const start = document.getElementById('history-start-date').value;
             const end = document.getElementById('history-end-date').value;
 
-            // กรองข้อมูลที่อยู่ในช่วงวันที่กำหนด
             const filtered = txs.filter(t => t.date >= start && t.date <= end);
             let incSum = 0, expSum = 0;
             histList.innerHTML = '';
@@ -256,27 +285,26 @@
                 emptyMsg.classList.remove('hidden');
             } else {
                 emptyMsg.classList.add('hidden');
-                // เรียงจากวันที่ล่าสุดลงไปหาอดีต
                 filtered.sort((a, b) => b.date.localeCompare(a.date) || b.ts - a.ts).forEach(t => {
                     const isInc = t.type === 'income';
                     if(isInc) incSum += t.amt; else expSum += t.amt;
-                    histList.appendChild(createRowItem(t, true)); // ส่ง true เพื่อบอกว่าให้โชว์วันที่ด้วย
+                    histList.appendChild(createRowItem(t, true));
                 });
             }
 
-            document.getElementById('hist-total-income').innerText = `฿${incSum.toLocaleString()}`;
-            document.getElementById('hist-total-expense').innerText = `฿${expSum.toLocaleString()}`;
-            document.getElementById('hist-total-balance').innerText = `฿${(incSum - expSum).toLocaleString()}`;
+            document.getElementById('hist-total-income').innerText = `฿${incSum.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('hist-total-expense').innerText = `฿${expSum.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('hist-total-balance').innerText = `฿${(incSum - expSum).toLocaleString(undefined, {minimumFractionDigits: 2})}`;
         }
 
-        // ตัวสร้าง Component แถวรายการเงินเข้าออก
         function createRowItem(t, showDate = false) {
             const isInc = t.type === 'income';
             const row = document.createElement('div');
             row.className = 'flex justify-between items-center py-3';
             
-            // แปลงฟอร์แมตวันที่แบบสั้นเพื่อแสดงผลในหน้าประวัติ
-            const dateLabel = showDate ? `<span class="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-normal mr-1">${t.date.substring(5)}</span>` : '';
+            let displayDate = t.date;
+            try { displayDate = t.date.substring(5); } catch(e){}
+            const dateLabel = showDate ? `<span class="bank-amount text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium mr-1">${displayDate}</span>` : '';
 
             row.innerHTML = `
                 <div class="flex items-center gap-2">
@@ -288,16 +316,46 @@
                         <p class="text-[11px] text-slate-400">${t.desc || '-'}</p>
                     </div>
                 </div>
-                <div class="text-right">
-                    <p class="text-sm font-bold ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'} ฿${t.amt.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
-                    <button onclick="deleteTx(${t.ts})" class="text-[10px] text-slate-300 hover:text-rose-500 font-medium">ลบ</button>
+                <div class="text-right flex items-center gap-2">
+                    <div>
+                        <p class="bank-amount text-sm font-bold ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'} ฿${t.amt.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                    </div>
+                    <button onclick="deleteOnlineTx(${t.ts})" class="w-6 h-6 text-slate-300 hover:text-rose-500 transition flex items-center justify-center text-xs font-bold bg-slate-50 hover:bg-rose-50 rounded-full border border-slate-100">
+                        ✕
+                    </button>
                 </div>
             `;
             return row;
         }
 
-        document.getElementById('tx-form').addEventListener('submit', (e) => {
+        // ฟังก์ชันส่งคำสั่งลบไปยัง Google Sheet
+        async function deleteOnlineTx(ts) {
+            if(!confirm('คุณแน่ใจนะว่าจะลบรายการนี้ออกจาก Google Sheet คลาวด์?')) return;
+            
+            setSyncStatus('กำลังลบข้อมูล...', 'bg-amber-500 text-white animate-pulse');
+            
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: "delete", ts: ts })
+                });
+
+                // รอระบบประมวลผลแป๊บนึงแล้วรีโหลดข้อมูลใหม่
+                setTimeout(fetchAllData, 800);
+            } catch (err) {
+                alert('ไม่สามารถลบข้อมูลได้ กรุณาตรวจสอบอินเทอร์เน็ต');
+                console.error(err);
+            }
+        }
+
+        document.getElementById('tx-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const btnSubmit = document.getElementById('btn-submit');
+            btnSubmit.disabled = true;
+            btnSubmit.innerText = "กำลังบันทึก...";
+
             const data = {
                 date: document.getElementById('date').value,
                 type: currentType,
@@ -306,24 +364,29 @@
                 amt: parseFloat(document.getElementById('amt').value),
                 ts: Date.now()
             };
-            txs.push(data);
-            document.getElementById('amt').value = '';
-            document.getElementById('desc').value = '';
-            updateUI();
+
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                document.getElementById('amt').value = '';
+                document.getElementById('desc').value = '';
+                setTimeout(fetchAllData, 800);
+            } catch (err) {
+                alert('เกิดข้อผิดพลาดในการบันทึก');
+                console.error(err);
+            } finally {
+                btnSubmit.disabled = false;
+                btnSubmit.innerText = "บันทึกรายการ";
+            }
         });
 
-        window.deleteTx = (ts) => {
-            if(confirm('ลบรายการนี้?')) {
-                txs = txs.filter(t => t.ts !== ts);
-                updateUI();
-                if(!document.getElementById('page-history').classList.contains('hidden')) {
-                    updateHistoryUI();
-                }
-            }
-        };
-
         setType('income');
-        updateUI();
+        fetchAllData();
     </script>
 </body>
 </html>
