@@ -17,142 +17,166 @@
 </head>
 <body class="text-slate-800 pb-24">
 
-    <nav class="bg-indigo-900 text-white pt-6 pb-10 px-4 rounded-b-[2rem] shadow-lg">
-        <div class="w-full flex justify-between items-center">
+    <div id="login-screen" class="fixed inset-0 bg-slate-900 z-50 flex flex-col justify-center items-center px-6">
+        <div class="w-full max-w-sm bg-white p-6 rounded-2xl shadow-xl text-center space-y-4">
             <div>
-                <p class="text-indigo-200 text-xs">ระบบบัญชีออนไลน์</p>
-                <h1 class="text-xl font-bold text-white">ร้านสรวลนารี</h1>
+                <span class="text-3xl">🔒</span>
+                <h1 class="text-xl font-bold text-slate-800 mt-2">สรวลนารี บัญชีร้าน</h1>
+                <p class="text-xs text-slate-400">กรุณาใส่รหัสผ่านเพื่อเข้าใช้งานระบบ</p>
             </div>
-            <div class="text-right">
-                <p id="display-date" class="text-xs text-indigo-200 font-medium"></p>
-                <span id="sync-status" class="inline-block text-[9px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full mt-1">● Online</span>
-            </div>
-        </div>
-    </nav>
-
-    <div id="page-input" class="w-full px-3 -mt-6 space-y-4">
-        <div class="bg-white p-4 bank-card shadow-sm border border-slate-100">
-            <div class="grid grid-cols-3 divide-x divide-slate-100 text-center">
-                <div>
-                    <p class="text-slate-400 text-[10px] font-semibold mb-1">รายรับวันนี้</p>
-                    <p id="total-income" class="bank-amount text-md font-extrabold text-emerald-600">฿0.00</p>
-                </div>
-                <div>
-                    <p class="text-slate-400 text-[10px] font-semibold mb-1">รายจ่ายวันนี้</p>
-                    <p id="total-expense" class="bank-amount text-md font-extrabold text-rose-600">฿0.00</p>
-                </div>
-                <div class="bg-indigo-50/50 rounded-r-xl">
-                    <p class="text-indigo-600 text-[10px] font-semibold mb-1">คงเหลือ</p>
-                    <p id="total-balance" class="bank-amount text-md font-extrabold text-indigo-950">฿0.00</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white p-4 bank-card shadow-md border border-slate-100">
-            <h2 class="text-md font-bold mb-4 flex items-center gap-2">
-                <span class="w-1.5 h-5 bg-indigo-600 rounded-full"></span>
-                บันทึกรายการใหม่
-            </h2>
-            <form id="tx-form" class="space-y-4">
-                <div>
-                    <label class="text-[11px] font-semibold text-slate-500 block mb-1">เลือกวันที่</label>
-                    <input type="date" id="date" required class="bank-amount w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none font-medium">
-                </div>
-                <div>
-                    <label class="text-[11px] font-semibold text-slate-500 block mb-1">ประเภทรายการ</label>
-                    <div class="flex gap-2">
-                        <button type="button" onclick="setType('income')" id="btn-inc" class="flex-1 py-2 text-sm rounded-xl font-bold border border-emerald-500 text-emerald-600 bg-emerald-50">รายรับ</button>
-                        <button type="button" onclick="setType('expense')" id="btn-exp" class="flex-1 py-2 text-sm rounded-xl font-bold border border-transparent bg-slate-100 text-slate-500">รายจ่าย</button>
-                    </div>
-                </div>
-                <div>
-                    <label class="text-[11px] font-semibold text-slate-500 block mb-1">เลือกหมวดหมู่</label>
-                    <div id="category-container" class="flex flex-wrap gap-2"></div>
-                </div>
-                <div>
-                    <label class="text-[11px] font-semibold text-slate-500 block mb-1">รายละเอียดเพิ่มเติม</label>
-                    <input type="text" id="desc" placeholder="ระบุเพิ่มเติม (ถ้ามี)..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none">
-                </div>
-                <div>
-                    <label class="text-[11px] font-semibold text-slate-500 block mb-1">จำนวนเงิน (บาท)</label>
-                    <input type="number" id="amt" step="0.01" placeholder="0.00" required class="bank-amount w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xl font-extrabold text-indigo-900 outline-none">
-                </div>
-                <button type="submit" id="btn-submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-md text-sm transition-all flex justify-center items-center gap-2">
-                    บันทึกรายการ
+            <form id="login-form" class="space-y-3">
+                <input type="password" id="login-pass" placeholder="ใส่รหัสผ่านที่นี่..." required
+                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-center text-lg font-bold tracking-widest text-indigo-900 outline-none focus:ring-2 focus:ring-indigo-500">
+                <p id="login-error" class="text-xs text-rose-500 font-medium hidden">❌ รหัสผ่านไม่ถูกต้อง</p>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-md text-sm transition-all">
+                    เข้าสู่ระบบ
                 </button>
             </form>
         </div>
-
-        <div class="bg-white p-4 bank-card shadow-md border border-slate-100">
-            <h2 class="text-sm font-bold text-slate-500 mb-3">รายการของวันนี้</h2>
-            <div id="tx-list-today" class="divide-y divide-slate-100">
-                <div class="py-6 text-center text-xs text-slate-400">กำลังโหลดข้อมูลจาก Google Sheet...</div>
-            </div>
-        </div>
     </div>
 
-    <div id="page-history" class="w-full px-3 -mt-6 space-y-4 hidden">
-        <div class="bg-white p-4 bank-card shadow-md border border-slate-100">
-            <h2 class="text-md font-bold mb-3 flex items-center gap-2">
-                <span class="w-1.5 h-5 bg-amber-500 rounded-full"></span>
-                เลือกช่วงเวลาดูย้อนหลัง
-            </h2>
-            <div class="grid grid-cols-2 gap-2 mb-3">
+    <div id="main-app" class="hidden">
+        <nav class="bg-indigo-900 text-white pt-6 pb-10 px-4 rounded-b-[2rem] shadow-lg">
+            <div class="w-full flex justify-between items-start">
                 <div>
-                    <label class="text-[10px] font-semibold text-slate-400 block mb-1">จากวันที่</label>
-                    <input type="date" id="history-start-date" class="bank-amount w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs outline-none font-medium">
+                    <p class="text-indigo-200 text-xs">ระบบบัญชีออนไลน์</p>
+                    <h1 class="text-xl font-bold text-white">ร้านสรวลนารี</h1>
                 </div>
-                <div>
-                    <label class="text-[10px] font-semibold text-slate-400 block mb-1">ถึงวันที่</label>
-                    <input type="date" id="history-end-date" class="bank-amount w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs outline-none font-medium">
+                <div class="text-right">
+                    <p id="display-date" class="text-xs text-indigo-200 font-medium"></p>
+                    <p id="display-time" class="bank-amount text-sm font-bold text-amber-400 mt-0.5"></p>
+                    <span id="sync-status" class="inline-block text-[9px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full mt-1.5">● Online</span>
+                    <button onclick="handleLogout()" class="block text-[10px] text-indigo-300 underline mt-1.5 ml-auto">ออกจากระบบ</button>
                 </div>
             </div>
-            <button onclick="updateHistoryUI()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2 rounded-xl text-xs">
-                ดึงข้อมูลประวัติ
+        </nav>
+
+        <div id="page-input" class="w-full px-3 -mt-6 space-y-4">
+            <div class="bg-white p-4 bank-card shadow-sm border border-slate-100">
+                <div class="grid grid-cols-3 divide-x divide-slate-100 text-center">
+                    <div>
+                        <p class="text-slate-400 text-[10px] font-semibold mb-1">รายรับวันนี้</p>
+                        <p id="total-income" class="bank-amount text-md font-extrabold text-emerald-600">฿0.00</p>
+                    </div>
+                    <div>
+                        <p class="text-slate-400 text-[10px] font-semibold mb-1">รายจ่ายวันนี้</p>
+                        <p id="total-expense" class="bank-amount text-md font-extrabold text-rose-600">฿0.00</p>
+                    </div>
+                    <div class="bg-indigo-50/50 rounded-r-xl">
+                        <p class="text-indigo-600 text-[10px] font-semibold mb-1">คงเหลือ</p>
+                        <p id="total-balance" class="bank-amount text-md font-extrabold text-indigo-950">฿0.00</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 bank-card shadow-md border border-slate-100">
+                <h2 class="text-md font-bold mb-4 flex items-center gap-2">
+                    <span class="w-1.5 h-5 bg-indigo-600 rounded-full"></span>
+                    บันทึกรายการใหม่
+                </h2>
+                <form id="tx-form" class="space-y-4">
+                    <div>
+                        <label class="text-[11px] font-semibold text-slate-500 block mb-1">เลือกวันที่</label>
+                        <input type="date" id="date" required class="bank-amount w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none font-medium">
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-semibold text-slate-500 block mb-1">ประเภทรายการ</label>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="setType('income')" id="btn-inc" class="flex-1 py-2 text-sm rounded-xl font-bold border border-emerald-500 text-emerald-600 bg-emerald-50">รายรับ</button>
+                            <button type="button" onclick="setType('expense')" id="btn-exp" class="flex-1 py-2 text-sm rounded-xl font-bold border border-transparent bg-slate-100 text-slate-500">รายจ่าย</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-semibold text-slate-500 block mb-1">เลือกหมวดหมู่</label>
+                        <div id="category-container" class="flex flex-wrap gap-2"></div>
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-semibold text-slate-500 block mb-1">รายละเอียดเพิ่มเติม</label>
+                        <input type="text" id="desc" placeholder="ระบุเพิ่มเติม (ถ้ามี)..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none">
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-semibold text-slate-500 block mb-1">จำนวนเงิน (บาท)</label>
+                        <input type="number" id="amt" step="0.01" placeholder="0.00" required class="bank-amount w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xl font-extrabold text-indigo-900 outline-none">
+                    </div>
+                    <button type="submit" id="btn-submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-md text-sm transition-all flex justify-center items-center gap-2">
+                        บันทึกรายการ
+                    </button>
+                </form>
+            </div>
+
+            <div class="bg-white p-4 bank-card shadow-md border border-slate-100">
+                <h2 class="text-sm font-bold text-slate-500 mb-3">รายการของวันนี้</h2>
+                <div id="tx-list-today" class="divide-y divide-slate-100">
+                    <div class="py-6 text-center text-xs text-slate-400">กำลังโหลดข้อมูลจาก Google Sheet...</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-history" class="w-full px-3 -mt-6 space-y-4 hidden">
+            <div class="bg-white p-4 bank-card shadow-md border border-slate-100">
+                <h2 class="text-md font-bold mb-3 flex items-center gap-2">
+                    <span class="w-1.5 h-5 bg-amber-500 rounded-full"></span>
+                    เลือกช่วงเวลาดูย้อนหลัง
+                </h2>
+                <div class="grid grid-cols-2 gap-2 mb-3">
+                    <div>
+                        <label class="text-[10px] font-semibold text-slate-400 block mb-1">จากวันที่</label>
+                        <input type="date" id="history-start-date" class="bank-amount w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs outline-none font-medium">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-semibold text-slate-400 block mb-1">ถึงวันที่</label>
+                        <input type="date" id="history-end-date" class="bank-amount w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs outline-none font-medium">
+                    </div>
+                </div>
+                <button onclick="updateHistoryUI()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2 rounded-xl text-xs">
+                    ดึงข้อมูลประวัติ
+                </button>
+            </div>
+
+            <div class="bg-slate-900 text-white p-4 bank-card shadow-lg">
+                <p class="text-center text-xs text-slate-400 mb-2 font-medium">สรุปยอดตามช่วงเวลาที่เลือก</p>
+                <div class="grid grid-cols-3 text-center divide-x divide-slate-800">
+                    <div>
+                        <p class="text-[10px] text-emerald-400">รายรับรวม</p>
+                        <p id="hist-total-income" class="bank-amount text-sm font-extrabold text-emerald-400">฿0.00</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-rose-400">รายจ่ายรวม</p>
+                        <p id="hist-total-expense" class="bank-amount text-sm font-extrabold text-rose-400">฿0.00</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-amber-400">กำไรสุทธิ</p>
+                        <p id="hist-total-balance" class="bank-amount text-sm font-extrabold text-amber-400">฿0.00</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 bank-card shadow-md border border-slate-100 min-h-[300px]">
+                <h2 class="text-sm font-bold text-slate-600 mb-3">รายการเดินบัญชี (Statement)</h2>
+                <div id="history-tx-list" class="divide-y divide-slate-100"></div>
+                <div id="history-empty-msg" class="text-center py-12 text-slate-400 hidden text-xs">
+                    ไม่มีรายการในช่วงเวลาดังกล่าว
+                </div>
+            </div>
+        </div>
+
+        <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-xl h-16 flex items-center justify-around z-50">
+            <button onclick="switchTab('input')" id="nav-input" class="flex flex-col items-center justify-center w-1/2 h-full active-tab text-slate-600 transition-all">
+                <span class="text-lg font-bold">📝</span>
+                <span class="text-[11px] font-bold">บันทึกรายการ</span>
+            </button>
+            <button onclick="switchTab('history')" id="nav-history" class="flex flex-col items-center justify-center w-1/2 h-full text-slate-400 transition-all">
+                <span class="text-lg font-bold">📊</span>
+                <span class="text-[11px] font-bold">ประวัติย้อนหลัง</span>
             </button>
         </div>
-
-        <div class="bg-slate-900 text-white p-4 bank-card shadow-lg">
-            <p class="text-center text-xs text-slate-400 mb-2 font-medium">สรุปยอดตามช่วงเวลาที่เลือก</p>
-            <div class="grid grid-cols-3 text-center divide-x divide-slate-800">
-                <div>
-                    <p class="text-[10px] text-emerald-400">รายรับรวม</p>
-                    <p id="hist-total-income" class="bank-amount text-sm font-extrabold text-emerald-400">฿0.00</p>
-                </div>
-                <div>
-                    <p class="text-[10px] text-rose-400">รายจ่ายรวม</p>
-                    <p id="hist-total-expense" class="bank-amount text-sm font-extrabold text-rose-400">฿0.00</p>
-                </div>
-                <div>
-                    <p class="text-[10px] text-amber-400">กำไรสุทธิ</p>
-                    <p id="hist-total-balance" class="bank-amount text-sm font-extrabold text-amber-400">฿0.00</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white p-4 bank-card shadow-md border border-slate-100 min-h-[300px]">
-            <h2 class="text-sm font-bold text-slate-600 mb-3">รายการเดินบัญชี (Statement)</h2>
-            <div id="history-tx-list" class="divide-y divide-slate-100"></div>
-            <div id="history-empty-msg" class="text-center py-12 text-slate-400 hidden text-xs">
-                ไม่มีรายการในช่วงเวลาดังกล่าว
-            </div>
-        </div>
-    </div>
-
-    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-xl h-16 flex items-center justify-around z-50">
-        <button onclick="switchTab('input')" id="nav-input" class="flex flex-col items-center justify-center w-1/2 h-full active-tab text-slate-600 transition-all">
-            <span class="text-lg font-bold">📝</span>
-            <span class="text-[11px] font-bold">บันทึกรายการ</span>
-        </button>
-        <button onclick="switchTab('history')" id="nav-history" class="flex flex-col items-center justify-center w-1/2 h-full text-slate-400 transition-all">
-            <span class="text-lg font-bold">📊</span>
-            <span class="text-[11px] font-bold">ประวัติย้อนหลัง</span>
-        </button>
     </div>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbz7UnklOx7vP_P4PgV1Rmw0rWe8L3SfcY0ub82C4bLVNAfQSnbfJ6IPbocDMDtvGHvS/exec";
         
+        const PASSWORD = "1234"; // รหัสผ่านเข้าใช้งานเว็บแอป
+
         let currentType = 'income';
         let selectedCategory = '';
         let txs = [];
@@ -166,10 +190,57 @@
         document.getElementById('date').value = todayStr;
         document.getElementById('display-date').innerText = new Date().toLocaleDateString('th-TH', { dateStyle: 'medium' });
 
+        // --- ลอจิกฟังก์ชันนาฬิกา Real-time ---
+        function updateClock() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+            const clockEl = document.getElementById('display-time');
+            if(clockEl) clockEl.innerText = timeString;
+        }
+        // สั่งให้นาฬิกาอัปเดตทุกๆ 1 วินาที (1000 มิลลิวินาที)
+        setInterval(updateClock, 1000);
+        updateClock(); // รันทันทีครั้งแรกตอนโหลดหน้าเว็บ
+
         const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
         document.getElementById('history-start-date').value = firstDayOfMonth;
         document.getElementById('history-end-date').value = todayStr;
 
+        // --- ระบบล็อกอิน ---
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const inputPass = document.getElementById('login-pass').value;
+            const errorMsg = document.getElementById('login-error');
+
+            if (inputPass === PASSWORD) {
+                localStorage.setItem('sn_logged_in', 'true');
+                showApp();
+            } else {
+                errorMsg.classList.remove('hidden');
+                document.getElementById('login-pass').value = '';
+            }
+        });
+
+        function checkLoginStatus() {
+            const status = localStorage.getItem('sn_logged_in');
+            if (status === 'true') {
+                showApp();
+            }
+        }
+
+        function showApp() {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            setType('income');
+            fetchAllData();
+            updateClock();
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('sn_logged_in');
+            window.location.reload();
+        }
+
+        // --- ระบบดึงข้อมูล ---
         async function fetchAllData() {
             setSyncStatus('กำลังโหลด...', 'bg-amber-500 text-white animate-pulse');
             try {
@@ -197,8 +268,10 @@
 
         function setSyncStatus(text, className) {
             const status = document.getElementById('sync-status');
-            status.innerText = text;
-            status.className = `inline-block text-[9px] px-2 py-0.5 rounded-full mt-1 ${className}`;
+            if(status) {
+                status.innerText = text;
+                status.className = `inline-block text-[9px] px-2 py-0.5 rounded-full mt-1 ${className}`;
+            }
         }
 
         function switchTab(tab) {
@@ -247,14 +320,17 @@
             const container = document.getElementById('category-container');
             const activeColor = currentType === 'income' ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' : 'bg-rose-600 text-white border-rose-600 shadow-sm';
             
-            container.innerHTML = categories[currentType].map(c => {
-                const isSelected = c === selectedCategory;
-                return `<button type="button" onclick="selectCategory('${c}')" class="px-4 py-2 text-xs font-semibold rounded-xl border transition-all ${isSelected ? activeColor : 'bg-slate-50 border-slate-200 text-slate-600'}">${c}</button>`;
-            }).join('');
+            if(container) {
+                container.innerHTML = categories[currentType].map(c => {
+                    const isSelected = c === selectedCategory;
+                    return `<button type="button" onclick="selectCategory('${c}')" class="px-4 py-2 text-xs font-semibold rounded-xl border transition-all ${isSelected ? activeColor : 'bg-slate-50 border-slate-200 text-slate-600'}">${c}</button>`;
+                }).join('');
+            }
         }
 
         function updateUI() {
             const listToday = document.getElementById('tx-list-today');
+            if(!listToday) return;
             const filteredToday = txs.filter(t => t.date === todayStr);
             let incSum = 0, expSum = 0;
             
@@ -274,6 +350,7 @@
         function updateHistoryUI() {
             const histList = document.getElementById('history-tx-list');
             const emptyMsg = document.getElementById('history-empty-msg');
+            if(!histList) return;
             const start = document.getElementById('history-start-date').value;
             const end = document.getElementById('history-end-date').value;
 
@@ -328,12 +405,9 @@
             return row;
         }
 
-        // ฟังก์ชันส่งคำสั่งลบไปยัง Google Sheet
         async function deleteOnlineTx(ts) {
-            if(!confirm('คุณแน่ใจนะว่าจะลบรายการนี้ออกจาก Google Sheet คลาวด์?')) return;
-            
+            if(!confirm('คุณแน่ใจนะว่าจะลบรายการนี้ออกจาก Google Sheet?')) return;
             setSyncStatus('กำลังลบข้อมูล...', 'bg-amber-500 text-white animate-pulse');
-            
             try {
                 await fetch(API_URL, {
                     method: 'POST',
@@ -341,11 +415,9 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: "delete", ts: ts })
                 });
-
-                // รอระบบประมวลผลแป๊บนึงแล้วรีโหลดข้อมูลใหม่
                 setTimeout(fetchAllData, 800);
             } catch (err) {
-                alert('ไม่สามารถลบข้อมูลได้ กรุณาตรวจสอบอินเทอร์เน็ต');
+                alert('ไม่สามารถลบข้อมูลได้');
                 console.error(err);
             }
         }
@@ -372,7 +444,6 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
-                
                 document.getElementById('amt').value = '';
                 document.getElementById('desc').value = '';
                 setTimeout(fetchAllData, 800);
@@ -385,8 +456,7 @@
             }
         });
 
-        setType('income');
-        fetchAllData();
+        checkLoginStatus();
     </script>
 </body>
 </html>
