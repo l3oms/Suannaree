@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>สรวลนารี | บัญชีร้าน</title>
+    <script src="config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -211,9 +212,9 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbz7UnklOx7vP_P4PgV1Rmw0rWe8L3SfcY0ub82C4bLVNAfQSnbfJ6IPbocDMDtvGHvS/exec";
-        
-        const PASSWORD = "1234"; 
+        const API_URL = window.APP_CONFIG?.API_URL?.trim() || '';
+        const SESSION_KEY = 'sn_session_token';
+        let authToken = sessionStorage.getItem(SESSION_KEY) || '';
 
         let currentType = 'income';
         let selectedCategory = '';
@@ -224,7 +225,40 @@
             expense: ['พนักงาน', 'ตลาด', 'ค่าเครื่องดื่ม', 'อื่นๆ']
         };
 
-        const todayStr = new Date().toISOString().split('T')[0];
+        const categorySummaryElements = {
+            income: {
+                'เงินสด': 'cat-sum-cash',
+                'เงินโอน': 'cat-sum-transfer'
+            },
+            expense: {
+                'พนักงาน': 'cat-sum-staff',
+                'ตลาด': 'cat-sum-market',
+                'ค่าเครื่องดื่ม': 'cat-sum-drink',
+                'อื่นๆ': 'cat-sum-other'
+            }
+        };
+
+        function toAmount(value) {
+            const amount = Number(value);
+            return Number.isFinite(amount) ? amount : 0;
+        }
+
+        function formatAmount(value) {
+            return `฿${toAmount(value).toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            })}`;
+        }
+
+        function toLocalDateInputValue(date) {
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        const now = new Date();
+        const todayStr = toLocalDateInputValue(now);
         document.getElementById('date').value = todayStr;
         document.getElementById('display-date').innerText = new Date().toLocaleDateString('th-TH', { dateStyle: 'medium' });
 
@@ -237,30 +271,80 @@
         setInterval(updateClock, 1000);
         updateClock(); 
 
-        const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+        const firstDayOfMonth = toLocalDateInputValue(new Date(now.getFullYear(), now.getMonth(), 1));
         document.getElementById('history-start-date').value = firstDayOfMonth;
         document.getElementById('history-end-date').value = todayStr;
 
         // --- ระบบล็อกอิน ---
-        document.getElementById('login-form').addEventListener('submit', function(e) {
+        document.getElementById('login-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             const inputPass = document.getElementById('login-pass').value;
             const errorMsg = document.getElementById('login-error');
+            const submitButton = e.currentTarget.querySelector('button[type="submit"]');
 
-            if (inputPass === PASSWORD) {
-                localStorage.setItem('sn_logged_in', 'true');
+            errorMsg.classList.add('hidden');
+            submitButton.disabled = true;
+            submitButton.innerText = 'กำลังตรวจสอบ...';
+
+            try {
+                const result = await postToApi({ action: 'login', password: inputPass });
+                if (!result.ok || !result.token) throw new Error(result.error || 'รหัสผ่านไม่ถูกต้อง');
+
+                authToken = result.token;
+                sessionStorage.setItem(SESSION_KEY, authToken);
+                document.getElementById('login-pass').value = '';
                 showApp();
-            } else {
+            } catch (err) {
+                errorMsg.innerText = `❌ ${err.message || 'ไม่สามารถเข้าสู่ระบบได้'}`;
                 errorMsg.classList.remove('hidden');
                 document.getElementById('login-pass').value = '';
+            } finally {
+                submitButton.disabled = false;
+                submitButton.innerText = 'เข้าสู่ระบบ';
             }
         });
 
-        function checkLoginStatus() {
-            const status = localStorage.getItem('sn_logged_in');
-            if (status === 'true') {
-                showApp();
+        async function checkLoginStatus() {
+            if (!API_URL) {
+                showLoginError('ยังไม่ได้ตั้งค่า API_URL ใน config.js');
+                return;
             }
+
+            if (!authToken) return;
+
+            try {
+                const result = await postToApi({ action: 'validateSession', token: authToken });
+                if (!result.ok) throw new Error('เซสชันหมดอายุ');
+                showApp();
+            } catch (err) {
+                clearSession();
+            }
+        }
+
+        function showLoginError(message) {
+            const errorMsg = document.getElementById('login-error');
+            errorMsg.innerText = `❌ ${message}`;
+            errorMsg.classList.remove('hidden');
+        }
+
+        function clearSession() {
+            authToken = '';
+            sessionStorage.removeItem(SESSION_KEY);
+        }
+
+        async function postToApi(payload) {
+            if (!API_URL) throw new Error('ยังไม่ได้ตั้งค่า API_URL ใน config.js');
+
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            if (!response.ok || result.ok === false) {
+                throw new Error(result.error || 'เกิดข้อผิดพลาดจากเซิร์ฟเวอร์');
+            }
+            return result;
         }
 
         function showApp() {
@@ -271,8 +355,13 @@
             updateClock();
         }
 
-        function handleLogout() {
-            localStorage.removeItem('sn_logged_in');
+        async function handleLogout() {
+            try {
+                if (authToken) await postToApi({ action: 'logout', token: authToken });
+            } catch (err) {
+                console.warn('ไม่สามารถยกเลิกเซสชันที่เซิร์ฟเวอร์ได้', err);
+            }
+            clearSession();
             window.location.reload();
         }
 
@@ -280,15 +369,15 @@
         async function fetchAllData() {
             setSyncStatus('กำลังโหลด...', 'bg-amber-500 text-white animate-pulse');
             try {
-                const res = await fetch(API_URL);
-                const rawData = await res.json();
+                const result = await postToApi({ action: 'list', token: authToken });
+                const rawData = result.data;
                 
                 txs = rawData.map(t => {
                     let d = new Date(t.date);
                     let yyyy = d.getFullYear();
                     let mm = String(d.getMonth() + 1).padStart(2, '0');
                     let dd = String(d.getDate()).padStart(2, '0');
-                    return { ...t, date: `${yyyy}-${mm}-${dd}` };
+                    return { ...t, date: `${yyyy}-${mm}-${dd}`, amt: toAmount(t.amt) };
                 });
 
                 setSyncStatus('● ซิงค์สำเร็จ', 'bg-emerald-500/20 text-emerald-600');
@@ -298,6 +387,11 @@
                 }
             } catch (err) {
                 console.error(err);
+                if (/เซสชัน|อนุญาต/.test(err.message)) {
+                    clearSession();
+                    window.location.reload();
+                    return;
+                }
                 setSyncStatus('⚠️ เชื่อมต่อล้มเหลว', 'bg-rose-500 text-white');
             }
         }
@@ -374,13 +468,16 @@
 
             filteredToday.sort((a, b) => b.ts - a.ts).forEach((t) => {
                 const isInc = t.type === 'income';
-                if(isInc) incSum += t.amt; else expSum += t.amt;
+                const amount = toAmount(t.amt);
+                if (!t.cancelledAt) {
+                    if(isInc) incSum += amount; else expSum += amount;
+                }
                 listToday.appendChild(createRowItem(t));
             });
 
-            document.getElementById('total-income').innerText = `฿${incSum.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-            document.getElementById('total-expense').innerText = `฿${expSum.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-            document.getElementById('total-balance').innerText = `฿${(incSum - expSum).toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('total-income').innerText = formatAmount(incSum);
+            document.getElementById('total-expense').innerText = formatAmount(expSum);
+            document.getElementById('total-balance').innerText = formatAmount(incSum - expSum);
         }
 
         // หน้ารายงานย้อนหลัง (เวอร์ชันเพิ่มระบบแยกยอดตามหมวดหมู่ย่อย)
@@ -395,11 +492,12 @@
             const filtered = txs.filter(t => t.date >= start && t.date <= end);
             let incSum = 0, expSum = 0;
             
-            // ตัวแปรสำหรับเก็บยอดแยกตามหัวข้อย่อย
-            let catSums = {
-                'เงินสด': 0, 'เงินโอน': 0,
-                'พนักงาน': 0, 'ตลาด': 0, 'ค่าเครื่องดื่ม': 0, 'อื่นๆ': 0
-            };
+            const catSums = Object.fromEntries(
+                Object.entries(categories).map(([type, typeCategories]) => [
+                    type,
+                    Object.fromEntries(typeCategories.map(category => [category, 0]))
+                ])
+            );
 
             histList.innerHTML = '';
 
@@ -409,11 +507,14 @@
                 emptyMsg.classList.add('hidden');
                 filtered.sort((a, b) => b.date.localeCompare(a.date) || b.ts - a.ts).forEach(t => {
                     const isInc = t.type === 'income';
-                    if(isInc) incSum += t.amt; else expSum += t.amt;
-                    
-                    // บวกยอดสะสมเข้าหมวดหมู่ย่อยที่ตรงกัน
-                    if (catSums[t.cat] !== undefined) {
-                        catSums[t.cat] += t.amt;
+                    const amount = toAmount(t.amt);
+                    if (!t.cancelledAt) {
+                        if(isInc) incSum += amount; else expSum += amount;
+
+                        // แยกยอดตามทั้งประเภทรายการและหมวดหมู่ ป้องกันข้อมูลผิดประเภทปะปนกัน
+                        if (catSums[t.type]?.[t.cat] !== undefined) {
+                            catSums[t.type][t.cat] += amount;
+                        }
                     }
 
                     histList.appendChild(createRowItem(t, true));
@@ -421,63 +522,75 @@
             }
 
             // แสดงผลยอดรวม 3 กล่องหลัก
-            document.getElementById('hist-total-income').innerText = `฿${incSum.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-            document.getElementById('hist-total-expense').innerText = `฿${expSum.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-            document.getElementById('hist-total-balance').innerText = `฿${(incSum - expSum).toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('hist-total-income').innerText = formatAmount(incSum);
+            document.getElementById('hist-total-expense').innerText = formatAmount(expSum);
+            document.getElementById('hist-total-balance').innerText = formatAmount(incSum - expSum);
 
-            // ผูกค่าตัวเลขไปแสดงผลในตารางแยกหมวดหมู่ย่อยอวบอิ่มมนๆ
-            document.getElementById('cat-sum-cash').innerText = `฿${catSums['เงินสด'].toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-            document.getElementById('cat-sum-transfer').innerText = `฿${catSums['เงินโอน'].toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-            document.getElementById('cat-sum-staff').innerText = `฿${catSums['พนักงาน'].toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-            document.getElementById('cat-sum-market').innerText = `฿${catSums['ตลาด'].toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-            document.getElementById('cat-sum-drink').innerText = `฿${catSums['ค่าเครื่องดื่ม'].toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-            document.getElementById('cat-sum-other').innerText = `฿${catSums['อื่นๆ'].toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            Object.entries(categorySummaryElements).forEach(([type, elements]) => {
+                Object.entries(elements).forEach(([category, elementId]) => {
+                    document.getElementById(elementId).innerText = formatAmount(catSums[type][category]);
+                });
+            });
         }
 
         function createRowItem(t, showDate = false) {
             const isInc = t.type === 'income';
+            const isCancelled = Boolean(t.cancelledAt);
             const row = document.createElement('div');
-            row.className = 'flex justify-between items-center py-3';
+            row.className = `flex justify-between items-center gap-2 py-3 ${isCancelled ? 'opacity-60' : ''}`;
             
             let displayDate = t.date;
             try { displayDate = t.date.substring(5); } catch(e){}
             const dateLabel = showDate ? `<span class="bank-amount text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium mr-1">${displayDate}</span>` : '';
+            const cancelledDate = isCancelled ? new Date(t.cancelledAt).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }) : '';
+            const cancellationLabel = isCancelled
+                ? `<p class="text-[10px] text-rose-500 mt-1">ยกเลิก ${escapeHtml(cancelledDate)} — ${escapeHtml(t.cancelReason || 'ไม่ระบุเหตุผล')}</p>`
+                : '';
 
             row.innerHTML = `
                 <div class="flex items-center gap-2">
                     <div class="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold ${isInc ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}">
-                        ${t.cat.substring(0,2)}
+                        ${escapeHtml(String(t.cat || '').substring(0,2))}
                     </div>
                     <div>
-                        <p class="text-sm font-bold text-slate-700">${dateLabel}${t.cat}</p>
-                        <p class="text-[11px] text-slate-400">${t.desc || '-'}</p>
+                        <p class="text-sm font-bold text-slate-700 ${isCancelled ? 'line-through' : ''}">${dateLabel}${escapeHtml(t.cat)}</p>
+                        <p class="text-[11px] text-slate-400">${escapeHtml(t.desc || '-')}</p>
+                        ${cancellationLabel}
                     </div>
                 </div>
                 <div class="text-right flex items-center gap-2">
                     <div>
-                        <p class="bank-amount text-sm font-bold ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'} ฿${t.amt.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                        <p class="bank-amount text-sm font-bold ${isCancelled ? 'line-through text-slate-400' : (isInc ? 'text-emerald-600' : 'text-rose-600')}">${isInc ? '+' : '-'} ${formatAmount(t.amt)}</p>
                     </div>
-                    <button onclick="deleteOnlineTx(${t.ts})" class="w-6 h-6 text-slate-300 hover:text-rose-500 transition flex items-center justify-center text-xs font-bold bg-slate-50 hover:bg-rose-50 rounded-full border border-slate-100">
-                        ✕
-                    </button>
+                    ${isCancelled ? '<span class="text-[9px] font-bold text-rose-500 bg-rose-50 px-2 py-1 rounded-full">ยกเลิกแล้ว</span>' : `
+                    <button onclick="cancelOnlineTx(${Number(t.ts)})" class="text-[10px] text-slate-400 hover:text-rose-600 transition px-2 py-1 bg-slate-50 hover:bg-rose-50 rounded-lg border border-slate-100">
+                        ยกเลิก
+                    </button>`}
                 </div>
             `;
             return row;
         }
 
-        async function deleteOnlineTx(ts) {
-            if(!confirm('คุณแน่ใจนะว่าจะลบรายการนี้ออกจาก Google Sheet?')) return;
-            setSyncStatus('กำลังลบข้อมูล...', 'bg-amber-500 text-white animate-pulse');
+        function escapeHtml(value) {
+            const element = document.createElement('div');
+            element.textContent = String(value ?? '');
+            return element.innerHTML;
+        }
+
+        async function cancelOnlineTx(ts) {
+            const reason = prompt('กรุณาระบุเหตุผลที่ยกเลิกรายการ (กด Cancel เพื่อไม่ดำเนินการ)');
+            if (reason === null) return;
+            if (!reason.trim()) {
+                alert('กรุณาระบุเหตุผลที่ยกเลิกรายการ');
+                return;
+            }
+
+            setSyncStatus('กำลังยกเลิกรายการ...', 'bg-amber-500 text-white animate-pulse');
             try {
-                await fetch(API_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: "delete", ts: ts })
-                });
-                setTimeout(fetchAllData, 800);
+                await postToApi({ action: 'cancel', token: authToken, ts, reason: reason.trim() });
+                await fetchAllData();
             } catch (err) {
-                alert('ไม่สามารถลบข้อมูลได้');
+                alert(err.message || 'ไม่สามารถยกเลิกรายการได้');
                 console.error(err);
             }
         }
@@ -489,6 +602,8 @@
             btnSubmit.innerText = "กำลังบันทึก...";
 
             const data = {
+                action: 'create',
+                token: authToken,
                 date: document.getElementById('date').value,
                 type: currentType,
                 cat: selectedCategory,
@@ -498,15 +613,10 @@
             };
 
             try {
-                await fetch(API_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
+                await postToApi(data);
                 document.getElementById('amt').value = '';
                 document.getElementById('desc').value = '';
-                setTimeout(fetchAllData, 800);
+                await fetchAllData();
             } catch (err) {
                 alert('เกิดข้อผิดพลาดในการบันทึก');
                 console.error(err);
