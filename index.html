@@ -317,7 +317,12 @@
                 if (!result.ok) throw new Error('เซสชันหมดอายุ');
                 showApp();
             } catch (err) {
-                clearSession();
+                if (/เซสชัน|อนุญาต/.test(err.message)) {
+                    clearSession();
+                } else {
+                    // เน็ตหรือเซิร์ฟเวอร์มีปัญหาชั่วคราว: ไม่ต้องให้ล็อกอินใหม่ แสดงปุ่มลองใหม่แทน
+                    showApp();
+                }
             }
         }
 
@@ -332,19 +337,41 @@
             sessionStorage.removeItem(SESSION_KEY);
         }
 
+        // คำสั่งที่ส่งซ้ำได้โดยไม่เกิดรายการซ้ำ (อ่านข้อมูลอย่างเดียว)
+        const RETRYABLE_ACTIONS = ['list', 'validateSession'];
+
         async function postToApi(payload) {
             if (!API_URL) throw new Error('ยังไม่ได้ตั้งค่า API_URL ใน config.js');
 
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(payload)
-            });
-            const result = await response.json();
-            if (!response.ok || result.ok === false) {
-                throw new Error(result.error || 'เกิดข้อผิดพลาดจากเซิร์ฟเวอร์');
+            const maxAttempts = RETRYABLE_ACTIONS.includes(payload.action) ? 3 : 1;
+            let lastError;
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                let result;
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify(payload)
+                    });
+                    try {
+                        result = await response.json();
+                    } catch (parseErr) {
+                        throw new Error('เซิร์ฟเวอร์ตอบกลับไม่ถูกต้อง');
+                    }
+                    if (!response.ok) throw new Error('เซิร์ฟเวอร์ขัดข้อง (' + response.status + ')');
+                } catch (err) {
+                    // ปัญหาเครือข่ายหรือ Apps Script ตอบช้า: รอแล้วลองใหม่
+                    lastError = err;
+                    if (attempt < maxAttempts) await new Promise(r => setTimeout(r, 1500 * attempt));
+                    continue;
+                }
+                // เซิร์ฟเวอร์ปฏิเสธคำขอ (รหัสผิด เซสชันหมดอายุ ฯลฯ) ไม่ต้องลองใหม่
+                if (!result || result.ok === false) {
+                    throw new Error((result && result.error) || 'เกิดข้อผิดพลาดจากเซิร์ฟเวอร์');
+                }
+                return result;
             }
-            return result;
+            throw lastError;
         }
 
         function showApp() {
@@ -370,9 +397,11 @@
             setSyncStatus('กำลังโหลด...', 'bg-amber-500 text-white animate-pulse');
             try {
                 const result = await postToApi({ action: 'list', token: authToken });
-                const rawData = result.data;
-                
-                txs = rawData.map(t => {
+                if (!Array.isArray(result.data)) {
+                    throw new Error('ข้อมูลจากเซิร์ฟเวอร์ไม่สมบูรณ์');
+                }
+
+                txs = result.data.map(t => {
                     let d = new Date(t.date);
                     let yyyy = d.getFullYear();
                     let mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -392,15 +421,16 @@
                     window.location.reload();
                     return;
                 }
-                setSyncStatus('⚠️ เชื่อมต่อล้มเหลว', 'bg-rose-500 text-white');
+                setSyncStatus('⚠️ โหลดไม่สำเร็จ แตะเพื่อลองใหม่', 'bg-rose-500 text-white cursor-pointer', fetchAllData);
             }
         }
 
-        function setSyncStatus(text, className) {
+        function setSyncStatus(text, className, onRetry) {
             const status = document.getElementById('sync-status');
             if(status) {
                 status.innerText = text;
                 status.className = `inline-block text-[9px] px-2 py-0.5 rounded-full mt-1 ${className}`;
+                status.onclick = onRetry || null;
             }
         }
 
