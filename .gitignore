@@ -1,0 +1,8 @@
+# ไฟล์ระบบและ editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Marketing photos downloaded for drafting Facebook posts (not part of the web app)
+facebook-photos/
